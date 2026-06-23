@@ -1,0 +1,114 @@
+{
+  "version": "1.0",
+  "name": "aurora-gpu-pipeline",
+  "description": "Unified GPU infrastructure for Aurora video/image generation",
+  "infrastructure": {
+    "primary": {
+      "type": "runpod_pod",
+      "name": "aurora-gpu-pod",
+      "gpu": "RTX4090",
+      "vram": "24GB",
+      "cpu_cores": 8,
+      "memory": "32GB",
+      "storage": "50GB",
+      "cost_per_hour": 0.45,
+      "purpose": "Primary compute, immediate requests"
+    },
+    "workers": [
+      {
+        "id": "comfyui-worker-1",
+        "type": "runpod_worker",
+        "gpu": "RTX4090",
+        "vram": "24GB",
+        "purpose": "Image generation, Stable Diffusion",
+        "max_concurrent_jobs": 5,
+        "cost_per_hour": 0.45
+      },
+      {
+        "id": "kling-worker-1",
+        "type": "runpod_worker",
+        "gpu": "A40",
+        "vram": "48GB",
+        "purpose": "Video generation with Kling AI",
+        "max_concurrent_jobs": 3,
+        "cost_per_hour": 0.35
+      },
+      {
+        "id": "lipsync-worker-1",
+        "type": "runpod_worker",
+        "gpu": "RTX4080",
+        "vram": "12GB",
+        "purpose": "Lip sync and facial animation",
+        "max_concurrent_jobs": 4,
+        "cost_per_hour": 0.28
+      },
+      {
+        "id": "motion-worker-1",
+        "type": "runpod_worker",
+        "gpu": "RTX4080",
+        "vram": "12GB",
+        "purpose": "Motion transfer and pose guidance",
+        "max_concurrent_jobs": 4,
+        "cost_per_hour": 0.28
+      }
+    ],
+    "serverless": {
+      "type": "runpod_serverless",
+      "purpose": "Auto-scaling fallback for burst traffic",
+      "timeout_seconds": 900,
+      "cold_start_penalty": "~30 seconds"
+    },
+    "jupyter": {
+      "type": "runpod_pod",
+      "gpu": "RTX4070",
+      "vram": "12GB",
+      "purpose": "Interactive notebook for development",
+      "notebook_port": 8888
+    }
+  },
+  "failover_strategy": {
+    "priority_order": [
+      "primary_pod",
+      "dedicated_worker",
+      "serverless",
+      "jupyter_kernel",
+      "external_provider"
+    ],
+    "health_check_interval_seconds": 30,
+    "retry_attempts": 3,
+    "retry_backoff": "exponential"
+  },
+  "models": {
+    "image_generation": [
+      "stable-diffusion-v2.1",
+      "stable-diffusion-xl",
+      "controlnet",
+      "real-esrgan"
+    ],
+    "video_generation": [
+      "kling-ai-video",
+      "stable-video-diffusion"
+    ],
+    "facial_animation": [
+      "wav2lip",
+      "syncnet"
+    ],
+    "pose_estimation": [
+      "dwpose",
+      "mediapipe",
+      "openpose"
+    ]
+  },
+  "api_endpoints": {
+    "base_url": "http://localhost:8000",
+    "v1": {
+      "image_gen": "/api/v1/image-gen",
+      "video_gen": "/api/v1/video-gen",
+      "lip_sync": "/api/v1/lip-sync",
+      "motion_transfer": "/api/v1/motion-transfer",
+      "job_status": "/api/v1/job/{job_id}",
+      "stats": "/api/v1/stats",
+      "health": "/health"
+    }
+  }
+}
